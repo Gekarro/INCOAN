@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolución de Partidas Clave</title>
+    <!-- Incluir Chart.js desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: #0F172A;
+            border: 1px solid #e2e8f0;
+        }
+
+        .header {
+            background: #EBF2FF;
+            padding: 16px 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #0F3460;
+        }
+
+        .header h2 {
+            font-size: 18px;
+            margin: 0 auto;
+            font-weight: bold;
+            color: #7c3aed;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .view-selector, .partida-selector, .year-selector {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 0 8px 8px 0;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            font-weight: normal;
+            font-size: 14px;
+            cursor: pointer;
+            color: #0F172A;
+            transition: all 0.3s ease;
+        }
+
+        button.active {
+            border-color: #2563eb;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Ajustado el contenedor para tener altura fija */
+        .chart-container {
+            width: 100%;
+            margin-bottom: 30px;
+            height: 400px; /* Altura fija */
+            position: relative; /* Importante para el posicionamiento del canvas */
+        }
+
+        /* Canvas tiene ahora posición absoluta dentro del contenedor */
+        #mainChart {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0F3460;
+        }
+
+        .info-panel {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0F3460;
+            border-bottom: 2px solid #7c3aed;
+            padding-bottom: 8px;
+        }
+
+        .hallazgos {
+            margin-top: 20px;
+        }
+
+        .hallazgos h3 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #2563eb;
+        }
+
+        .hallazgos ul {
+            list-style-type: none;
+        }
+
+        .hallazgos li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 20px;
+            font-size: 14px;
+        }
+
+        .hallazgos li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #1e40af;
+        }
+
+        .hallazgos li:nth-child(2)::before {
+            background: #10b981;
+        }
+
+        .hallazgos li:nth-child(3)::before {
+            background: #f59e0b;
+        }
+
+        .hallazgos li:nth-child(4)::before {
+            background: #3b82f6;
+        }
+
+        .partida-info {
+            margin-bottom: 15px;
+        }
+
+        .partida-info h3 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1e40af;
+        }
+
+        .partida-info p {
+            font-size: 14px;
+            margin: 0 0 8px 0;
+        }
+
+        .tendencias {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tendencia {
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .tendencia-instalaciones {
+            background: rgba(30, 64, 175, 0.1);
+            border-left: 4px solid #1e40af;
+        }
+
+        .tendencia-existencias {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+        }
+
+        .tendencia-deudores {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+        }
+
+        .tendencia-efectivo {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .tendencia h4 {
+            margin: 0 0 5px 0;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .tendencia-instalaciones h4 {
+            color: #1e40af;
+        }
+
+        .tendencia-existencias h4 {
+            color: #10b981;
+        }
+
+        .tendencia-deudores h4 {
+            color: #f59e0b;
+        }
+
+        .tendencia-efectivo h4 {
+            color: #3b82f6;
+        }
+
+        .tendencia p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .footer-note {
+            background: #EBF2FF;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #0F172A;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>EVOLUCIÓN DE PARTIDAS CLAVE DEL ACTIVO</h1>
+            <h2>INCOAN (2019-2023)</h2>
+        </div>
+
+        <div class="controls">
+            <div class="view-selector">
+                <button class="view-btn active" data-view="lines">EVOLUCIÓN</button>
+                <button class="view-btn" data-view="bars">ESTRUCTURA</button>
+                <button class="view-btn" data-view="growth">CRECIMIENTO</button>
+                <button class="view-btn" data-view="composition">COMPOSICIÓN</button>
+            </div>
+
+            <div class="partida-selector">
+                <button class="partida-btn active" data-partida="all">TODAS LAS PARTIDAS</button>
+                <button class="partida-btn" data-partida="instalaciones">INSTALACIONES</button>
+                <button class="partida-btn" data-partida="existencias">EXISTENCIAS</button>
+                <button class="partida-btn" data-partida="deudores">DEUDORES</button>
+                <button class="partida-btn" data-partida="efectivo">EFECTIVO</button>
+                <button class="partida-btn" data-partida="desarrollo">DESARROLLO</button>
+            </div>
+
+            <div class="year-selector" style="display: none;">
+                <button class="year-btn" data-year="2019">2019</button>
+                <button class="year-btn" data-year="2020">2020</button>
+                <button class="year-btn" data-year="2021">2021</button>
+                <button class="year-btn" data-year="2022">2022</button>
+                <button class="year-btn active" data-year="2023">2023</button>
+            </div>
+        </div>
+
+        <h2 class="chart-title">EVOLUCIÓN DE PARTIDAS CLAVE (VALORES ABSOLUTOS)</h2>
+        
+        <!-- Contenedor con altura fija para el gráfico -->
+        <div class="chart-container">
+            <canvas id="mainChart"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <h2 class="info-title">ANÁLISIS MULTIPARTIDA</h2>
+            
+            <!-- Panel de tendencias (visible cuando se seleccionan todas las partidas) -->
+            <div class="tendencias" id="tendenciasPanel">
+                <div class="tendencia tendencia-instalaciones">
+                    <h4>Instalaciones Técnicas</h4>
+                    <p>Aceleración en 2022-2023 (+29,8%, +20,4%), reflejando ampliación significativa de capacidad productiva.</p>
+                </div>
+                <div class="tendencia tendencia-existencias">
+                    <h4>Existencias</h4>
+                    <p>Crecimiento acelerado hasta 2022 (incremento acumulado +169%) y moderación en 2023 (+6,5%).</p>
+                </div>
+                <div class="tendencia tendencia-deudores">
+                    <h4>Deudores Comerciales</h4>
+                    <p>Evolución fluctuante con caída significativa en 2022 (-32,5%) y recuperación en 2023 (+51,8%).</p>
+                </div>
+                <div class="tendencia tendencia-efectivo">
+                    <h4>Efectivo</h4>
+                    <p>Incremento extraordinario en 2023 (+753,8%), multiplicando por 8,5 su valor absoluto.</p>
+                </div>
+            </div>
+            
+            <!-- Panel de info de partida individual (oculto inicialmente) -->
+            <div class="partida-info" id="partidaInfoPanel" style="display: none;">
+                <h3 id="partidaTitulo">INSTALACIONES TÉCNICAS</h3>
+                <p><b>Definición:</b> <span id="partidaDefinicion">Equipos y maquinaria para la fabricación de productos confiteros</span></p>
+                <p><b>Evolución:</b> <span id="partidaEvolucion">Crecimiento continuo con aceleración significativa desde 2022 (+29,8% en 2022, +20,4% en 2023)</span></p>
+                <p><b>Interpretación 2023:</b> <span id="partidaInterpretacion">Representa el 42,2% del activo total, reflejando la orientación manufacturera</span></p>
+                <p><b>Implicación:</b> <span id="partidaImplicacion">Fortalecimiento de la capacidad productiva para atender mayor demanda</span></p>
+            </div>
+            
+            <div class="hallazgos">
+                <h3>HALLAZGOS CLAVE</h3>
+                <ul id="hallazgosList">
+                    <li>Fortalecimiento continuo de capacidad productiva (instalaciones)</li>
+                    <li>Optimización progresiva de la gestión de existencias</li>
+                    <li>Mejora en la gestión de cobros con fluctuaciones en deudores</li>
+                    <li>Extraordinario incremento del efectivo en 2023 (+753,8%)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            <p id="footerContent">
+                La evolución de las partidas clave del activo durante el período 2019-2023 muestra tendencias diferenciadas que reflejan la adaptación de INCOAN a su modelo de negocio estacional y su estrategia de crecimiento. Destacan el continuo fortalecimiento de la capacidad productiva, la optimización progresiva de la gestión de existencias, las fluctuaciones en deudores comerciales y el extraordinario incremento del efectivo en 2023.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Datos
+        const data = [
+            { 
+                año: '2019', 
+                instalaciones: 1785956, 
+                existencias: 419256, 
+                deudores: 1292790,
+                efectivo: 110028,
+                desarrollo: 351229,
+                activo_total: 4257062,
+                etiqueta: 'Base'
+            },
+            { 
+                año: '2020', 
+                instalaciones: 1876951, 
+                existencias: 584318, 
+                deudores: 1501550,
+                efectivo: 48899,
+                desarrollo: 493917,
+                activo_total: 4735661,
+                etiqueta: 'Covid'
+            },
+            { 
+                año: '2021', 
+                instalaciones: 1990617, 
+                existencias: 967393, 
+                deudores: 1305702,
+                efectivo: 124325,
+                desarrollo: 586036,
+                activo_total: 5232270,
+                etiqueta: 'Recuperación'
+            },
+            { 
+                año: '2022', 
+                instalaciones: 2583114, 
+                existencias: 1126342, 
+                deudores: 881389,
+                efectivo: 92864,
+                desarrollo: 622688,
+                activo_total: 5656594,
+                etiqueta: 'Inversión'
+            },
+            { 
+                año: '2023', 
+                instalaciones: 3110168, 
+                existencias: 1200094, 
+                deudores: 1338121,
+                efectivo: 792861,
+                desarrollo: 654601,
+                activo_total: 7376369,
+                etiqueta: 'Inflexión'
+            }
+        ];
+        
+        // Datos de tasas de crecimiento
+        const growthData = [
+            { 
+                año: '2020', 
+                instalaciones: 5.10, 
+                existencias: 39.37, 
+                deudores: 16.15,
+                efectivo: -55.56,
+                desarrollo: 40.63,
+                etiqueta: 'Covid'
+            },
+            { 
+                año: '2021', 
+                instalaciones: 6.06, 
+                existencias: 65.56, 
+                deudores: -13.04,
+                efectivo: 154.25,
+                desarrollo: 18.65,
+                etiqueta: 'Recuperación'
+            },
+            { 
+                año: '2022', 
+                instalaciones: 29.76, 
+                existencias: 16.43, 
+                deudores: -32.50,
+                efectivo: -25.31,
+                desarrollo: 6.25,
+                etiqueta: 'Inversión'
+            },
+            { 
+                año: '2023', 
+                instalaciones: 20.40, 
+                existencias: 6.55, 
+                deudores: 51.82,
+                efectivo: 753.79,
+                desarrollo: 5.13,
+                etiqueta: 'Inflexión'
+            }
+        ];
+        
+        // Datos de composición
+        const compositionData = data.map(item => ({
+            año: item.año,
+            instalaciones: parseFloat(((item.instalaciones / item.activo_total) * 100).toFixed(2)),
+            existencias: parseFloat(((item.existencias / item.activo_total) * 100).toFixed(2)),
+            deudores: parseFloat(((item.deudores / item.activo_total) * 100).toFixed(2)),
+            efectivo: parseFloat(((item.efectivo / item.activo_total) * 100).toFixed(2)),
+            desarrollo: parseFloat(((item.desarrollo / item.activo_total) * 100).toFixed(2)),
+            otros: parseFloat((100 - 
+              ((item.instalaciones + item.existencias + item.deudores + item.efectivo + item.desarrollo) / item.activo_total) * 100
+            ).toFixed(2)),
+            etiqueta: item.etiqueta
+        }));
+        
+        // Colores
+        const partidaColors = {
+            instalaciones: '#1e40af',
+            existencias: '#10b981',
+            deudores: '#f59e0b',
+            efectivo: '#3b82f6',
+            desarrollo: '#8b5cf6',
+            otros: '#9ca3af'
+        };
+        
+        // Info detallada de partidas
+        const partidaInfo = {
+            instalaciones: {
+                titulo: "INSTALACIONES TÉCNICAS",
+                definicion: "Equipos y maquinaria para la fabricación de productos confiteros",
+                evolucion: "Crecimiento continuo con aceleración significativa desde 2022 (+29,8% en 2022, +20,4% en 2023)",
+                interpretacion2023: "Representa el 42,2% del activo total, reflejando la orientación manufacturera",
+                implicacion: "Fortalecimiento de la capacidad productiva para atender mayor demanda"
+            },
+            existencias: {
+                titulo: "EXISTENCIAS",
+                definicion: "Inventarios de productos terminados, materias primas y en curso",
+                evolucion: "Crecimiento acelerado hasta 2022 (+190% acumulado) y moderación en 2023 (+6,5%)",
+                interpretacion2023: "16,3% del activo total, adecuado para el ciclo estacional navideño",
+                implicacion: "Optimización progresiva de la gestión de inventarios"
+            },
+            deudores: {
+                titulo: "DEUDORES COMERCIALES",
+                definicion: "Créditos a clientes pendientes de cobro",
+                evolucion: "Fluctuación con caída significativa en 2021-2022 y recuperación en 2023 (+51,8%)",
+                interpretacion2023: "18,1% del activo total, por debajo del nivel de 2019-2020",
+                implicacion: "Mejor gestión del crédito comercial con recuperación reciente"
+            },
+            efectivo: {
+                titulo: "EFECTIVO",
+                definicion: "Tesorería y otros activos líquidos equivalentes",
+                evolucion: "Fluctuación moderada hasta 2022 seguida de incremento extraordinario en 2023 (+753,8%)",
+                interpretacion2023: "10,7% del activo total, multiplicando por 6,5 su peso histórico",
+                implicacion: "Posible preparación para inversiones o expansión estratégica"
+            },
+            desarrollo: {
+                titulo: "GASTOS DE DESARROLLO",
+                definicion: "Inversiones en innovación y desarrollo de productos/procesos",
+                evolucion: "Crecimiento acelerado hasta 2020 (+40,6%) seguido de desaceleración progresiva",
+                interpretacion2023: "8,9% del activo total, reflejando apuesta por innovación",
+                implicacion: "Posible maduración de un ciclo de desarrollo de productos"
+            }
+        };
+        
+        // Hallazgos por partida
+        const hallazgosData = {
+            all: [
+                "Fortalecimiento continuo de capacidad productiva (instalaciones)",
+                "Optimización progresiva de la gestión de existencias",
+                "Mejora en la gestión de cobros con fluctuaciones en deudores",
+                "Extraordinario incremento del efectivo en 2023 (+753,8%)"
+            ],
+            instalaciones: [
+                "Crecimiento continuo durante todo el período analizado",
+                "Aceleración notable desde 2022 (+29,8% y +20,4%)",
+                "Parte de un proceso de ampliación de capacidad productiva",
+                "Refleja apuesta estratégica por el crecimiento y modernización"
+            ],
+            existencias: [
+                "Incremento extraordinario entre 2019-2022 (+169%)",
+                "Moderación del crecimiento en 2023 (+6,5%)",
+                "Adaptación progresiva al modelo estacional del negocio",
+                "Optimización del nivel de stock para campaña navideña"
+            ],
+            deudores: [
+                "Evolución fluctuante con máximo en 2020 (+16,1%)",
+                "Reducción significativa en 2021-2022 (-32,5%)",
+                "Recuperación sustancial en 2023 (+51,8%)",
+                "Reflejo de la evolución en la gestión de cobros"
+            ],
+            efectivo: [
+                "Posición conservadora durante 2019-2022 (1-2,6% del activo)",
+                "Incremento extraordinario en 2023 (+753,8%)",
+                "Mayor posición de liquidez de todo el período",
+                "Posible preparación para nueva fase estratégica"
+            ],
+            desarrollo: [
+                "Crecimiento acelerado en 2020 (+40,6%)",
+                "Desaceleración progresiva en años posteriores",
+                "Incremento acumulado del 86,4% (2019-2023)",
+                "Culminación posible de un ciclo de innovación"
+            ]
+        };
+        
+        const hallazgosComposicion = {
+            '2019': [
+                "Estructura característica de empresa manufacturera",
+                "Alto peso del inmovilizado material (42,8%)",
+                "Elevado peso de deudores comerciales (30,4%)",
+                "Bajo nivel de efectivo (2,6% del activo total)"
+            ],
+            '2020': [
+                "Incremento del peso de deudores (33,5%)",
+                "Mantenimiento del peso de instalaciones (39,6%)",
+                "Reducción significativa del efectivo (1,0%)",
+                "Crecimiento del peso de gastos de desarrollo (10,4%)"
+            ],
+            '2021': [
+                "Reducción del peso de deudores (27,2%)",
+                "Incremento del peso de existencias (18,5%)",
+                "Ligera reducción del peso de instalaciones (38,0%)",
+                "Mayor equilibrio entre componentes del activo corriente"
+            ],
+            '2022': [
+                "Máximo histórico del peso de instalaciones (45,7%)",
+                "Máximo histórico del peso de existencias (19,9%)",
+                "Mínimo peso de deudores comerciales (19,3%)",
+                "Estructura orientada a capacidad productiva y stock"
+            ],
+            '2023': [
+                "Extraordinario incremento del peso del efectivo (10,7%)",
+                "Mantenimiento del peso de instalaciones (42,2%)",
+                "Ligera recuperación del peso de deudores (20,1%)",
+                "Posible preparación para nueva fase estratégica"
+            ]
+        };
+        
+        // Textos de pie de página
+        const footerTexts = {
+            lines: {
+                all: 'La evolución de las partidas clave del activo durante el período 2019-2023 muestra tendencias diferenciadas que reflejan la adaptación de INCOAN a su modelo de negocio estacional y su estrategia de crecimiento. Destacan el continuo fortalecimiento de la capacidad productiva, la optimización progresiva de la gestión de existencias, las fluctuaciones en deudores comerciales y el extraordinario incremento del efectivo en 2023.',
+                instalaciones: 'Las instalaciones técnicas muestran un crecimiento continuo durante todo el período, con aceleración significativa en 2022-2023 (+29,8% y +20,4% respectivamente). Esta evolución refleja una apuesta decidida por el fortalecimiento de la capacidad productiva, posiblemente orientada a atender un incremento de demanda y/o a la modernización tecnológica.',
+                existencias: 'Las existencias presentan un crecimiento extraordinario hasta 2022 (+169% acumulado), seguido de una moderación en 2023 (+6,5%). Esta evolución podría reflejar tanto la adaptación a un volumen creciente de actividad como posibles ajustes en la gestión del ciclo productivo estacional, optimizando la preparación para la campaña navideña.',
+                deudores: 'Los deudores comerciales muestran una evolución fluctuante, con incremento inicial en 2020 (+16,1%), caída significativa en 2021-2022 (-32,5% en 2022) y recuperación importante en 2023 (+51,8%). Estas variaciones podrían reflejar cambios en la política de cobros, en los volúmenes de venta de diferentes campañas, o una combinación de ambos factores.',
+                efectivo: 'El efectivo presenta la evolución más singular, con fluctuaciones moderadas hasta 2022 seguidas de un incremento extraordinario en 2023 (+753,8%), multiplicando por 8,5 su valor absoluto. Este cambio drástico sugiere una transformación en la política financiera, posiblemente como preparación para inversiones significativas o una nueva fase estratégica.',
+                desarrollo: 'Los gastos de desarrollo muestran un crecimiento acelerado en 2020 (+40,6%) seguido de una desaceleración progresiva en años posteriores. El incremento acumulado del 86,4% durante el período refleja la apuesta por la innovación, posiblemente vinculada a la diversificación e internacionalización mencionadas como estrategias para reducir la estacionalidad.'
+            },
+            growth: {
+                all: 'La evolución de las partidas clave del activo durante el período 2019-2023 muestra tendencias diferenciadas que reflejan la adaptación de INCOAN a su modelo de negocio estacional y su estrategia de crecimiento. Destacan el continuo fortalecimiento de la capacidad productiva, la optimización progresiva de la gestión de existencias, las fluctuaciones en deudores comerciales y el extraordinario incremento del efectivo en 2023.',
+                instalaciones: 'Las instalaciones técnicas muestran un crecimiento continuo durante todo el período, con aceleración significativa en 2022-2023 (+29,8% y +20,4% respectivamente). Esta evolución refleja una apuesta decidida por el fortalecimiento de la capacidad productiva, posiblemente orientada a atender un incremento de demanda y/o a la modernización tecnológica.',
+                existencias: 'Las existencias presentan un crecimiento extraordinario hasta 2022 (+169% acumulado), seguido de una moderación en 2023 (+6,5%). Esta evolución podría reflejar tanto la adaptación a un volumen creciente de actividad como posibles ajustes en la gestión del ciclo productivo estacional, optimizando la preparación para la campaña navideña.',
+                deudores: 'Los deudores comerciales muestran una evolución fluctuante, con incremento inicial en 2020 (+16,1%), caída significativa en 2021-2022 (-32,5% en 2022) y recuperación importante en 2023 (+51,8%). Estas variaciones podrían reflejar cambios en la política de cobros, en los volúmenes de venta de diferentes campañas, o una combinación de ambos factores.',
+                efectivo: 'El efectivo presenta la evolución más singular, con fluctuaciones moderadas hasta 2022 seguidas de un incremento extraordinario en 2023 (+753,8%), multiplicando por 8,5 su valor absoluto. Este cambio drástico sugiere una transformación en la política financiera, posiblemente como preparación para inversiones significativas o una nueva fase estratégica.',
+                desarrollo: 'Los gastos de desarrollo muestran un crecimiento acelerado en 2020 (+40,6%) seguido de una desaceleración progresiva en años posteriores. El incremento acumulado del 86,4% durante el período refleja la apuesta por la innovación, posiblemente vinculada a la diversificación e internacionalización mencionadas como estrategias para reducir la estacionalidad.'
+            },
+            bars: {
+                all: 'La estructura del activo durante el período 2019-2023 muestra una evolución significativa en el peso relativo de sus principales componentes. Las instalaciones técnicas mantienen su predominio (en torno al 40-45%), mientras se observa un incremento del peso de las existencias hasta 2022, una reducción progresiva del peso de deudores comerciales, y un extraordinario aumento del peso del efectivo en 2023.',
+                default: 'El peso relativo de la partida seleccionada muestra una evolución que refleja cambios significativos en la estructura del activo durante el período analizado, evidenciando adaptaciones estratégicas en el modelo de gestión patrimonial de INCOAN.'
+            },
+            composition: {
+                '2019': 'La composición del activo en 2019 refleja la estructura inicial de INCOAN, con claro predominio de instalaciones técnicas (41,9%) y deudores comerciales (30,4%), característica de una empresa manufacturera con ciclo de cobro prolongado.',
+                '2020': 'La composición del activo en 2020 refleja adaptaciones al entorno COVID, con incremento del peso de deudores (33,5%) y reducción del efectivo (1,0%), manteniendo el enfoque productivo con predominio de instalaciones técnicas (39,6%).',
+                '2021': 'La composición del activo en 2021 refleja una fase de transición, con reducción del peso de deudores (27,2%), incremento de existencias (18,5%) y ligera caída del peso de instalaciones (38,0%), buscando mayor equilibrio entre componentes del activo.',
+                '2022': 'La composición del activo en 2022 refleja un punto de máxima inversión productiva, con peso récord de instalaciones técnicas (45,7%) y existencias (19,9%), y mínimo histórico de deudores comerciales (19,3%).',
+                '2023': 'La composición del activo en 2023 refleja un punto de inflexión estratégico, con mantenimiento del peso de instalaciones (42,2%), recuperación de deudores (20,1%) y extraordinario incremento del efectivo (10,7%), que sugiere preparación para una nueva fase de desarrollo.'
+            }
+        };
+        
+        // Estado de la aplicación
+        let state = {
+            activeView: 'lines',
+            selectedPartida: 'all',
+            selectedYear: '2023',
+            chart: null
+        };
+        
+        // Funciones auxiliares
+        function formatEuro(value) {
+            return `${new Intl.NumberFormat('es-ES').format(value)} €`;
+        }
+        
+        function formatMillones(value) {
+            return `${(value / 1000000).toFixed(1)} M€`;
+        }
+        
+        function formatPercent(value) {
+            return `${value.toFixed(1)}%`;
+        }
+        
+        function formatGrowth(value) {
+            if (value > 100) return `+${value.toFixed(0)}%`;
+            return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
+        }
+        
+        // Función para obtener datos del gráfico de pastel
+        function getPieData(year) {
+            const yearData = compositionData.find(item => item.año === year);
+            return [
+                { name: 'Instalaciones Técnicas', value: yearData.instalaciones, color: partidaColors.instalaciones },
+                { name: 'Existencias', value: yearData.existencias, color: partidaColors.existencias },
+                { name: 'Deudores Comerciales', value: yearData.deudores, color: partidaColors.deudores },
+                { name: 'Efectivo', value: yearData.efectivo, color: partidaColors.efectivo },
+                { name: 'Gastos Desarrollo', value: yearData.desarrollo, color: partidaColors.desarrollo },
+                { name: 'Otros Activos', value: yearData.otros, color: partidaColors.otros }
+            ];
+        }
+        
+        // Funciones para obtener datos filtrados
+        function getFilteredData() {
+            if (state.selectedPartida === 'all') return data;
+            
+            return data.map(item => {
+                const result = { año: item.año };
+                result[state.selectedPartida] = item[state.selectedPartida];
+                return result;
+            });
+        }
+        
+        function getFilteredGrowthData() {
+            if (state.selectedPartida === 'all') return growthData;
+            
+            return growthData.map(item => {
+                const result = { año: item.año };
+                result[state.selectedPartida] = item[state.selectedPartida];
+                return result;
+            });
+        }
+        
+        function getFilteredCompositionData() {
+            if (state.selectedPartida === 'all') return compositionData;
+            
+            return compositionData.map(item => {
+                const result = { año: item.año };
+                result[state.selectedPartida] = item[state.selectedPartida];
+                result.otros = 100 - item[state.selectedPartida];
+                return result;
+            });
+        }
+        
+        // Inicialización al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Log para verificar que el script se está ejecutando
+            console.log('Inicializando aplicación...');
+            
+            // Verificar que Chart.js está disponible
+            if (typeof Chart === 'undefined') {
+                console.error('Error: Chart.js no está cargado correctamente');
+                document.body.innerHTML = '<div style="color: red; font-weight: bold; padding: 20px;">Error: No se pudo cargar Chart.js. Por favor, verifica tu conexión a Internet.</div>';
+                return;
+            }
+            
+            // Configurar los manejadores de eventos
+            setupEventListeners();
+            
+            // Verificar si el canvas está disponible
+            const canvas = document.getElementById('mainChart');
+            if (!canvas) {
+                console.error('Error: No se encontró el elemento canvas #mainChart');
+                return;
+            }
+            
+            console.log('Canvas encontrado, creando gráfico inicial...');
+            createChart();
+            updateUI();
+            
+            console.log('Inicialización completada');
+        });
+        
+        // Configurar escuchadores de eventos
+        function setupEventListeners() {
+            // Botones de vista
+            document.querySelectorAll('.view-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    console.log('Click en botón de vista:', this.dataset.view);
+                    document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    state.activeView = this.dataset.view;
+                    
+                    // Actualizar visibilidad de selectores
+                    if (state.activeView === 'composition') {
+                        document.querySelector('.partida-selector').style.display = 'none';
+                        document.querySelector('.year-selector').style.display = 'flex';
+                    } else {
+                        document.querySelector('.partida-selector').style.display = 'flex';
+                        document.querySelector('.year-selector').style.display = 'none';
+                    }
+                    
+                    updateUI();
+                });
+            });
+            
+            // Botones de partida
+            document.querySelectorAll('.partida-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    console.log('Click en botón de partida:', this.dataset.partida);
+                    document.querySelectorAll('.partida-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    state.selectedPartida = this.dataset.partida;
+                    updateUI();
+                });
+            });
+            
+            // Botones de año
+            document.querySelectorAll('.year-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    console.log('Click en botón de año:', this.dataset.year);
+                    document.querySelectorAll('.year-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    state.selectedYear = this.dataset.year;
+                    updateUI();
+                });
+            });
+        }
+        
+        // Actualizar toda la interfaz
+        function updateUI() {
+            console.log('Actualizando UI con estado:', state);
+            
+            // Actualizar título del gráfico
+            updateChartTitle();
+            
+            // Actualizar título del panel de información
+            updateInfoTitle();
+            
+            // Mostrar/ocultar paneles informativos
+            toggleInfoPanels();
+            
+            // Actualizar hallazgos
+            updateHallazgos();
+            
+            // Actualizar nota al pie
+            updateFooterNote();
+            
+            // Actualizar el gráfico
+            if (state.chart) {
+                state.chart.destroy();
+            }
+            createChart();
+            
+            // Si hay una partida específica seleccionada, actualizar su info
+            if (state.selectedPartida !== 'all' && state.activeView !== 'composition') {
+                updatePartidaInfo();
+            }
+        }
+        
+        // Actualizar título del gráfico
+        function updateChartTitle() {
+            const chartTitle = document.querySelector('.chart-title');
+            
+            if (state.activeView === 'lines') {
+                chartTitle.textContent = state.selectedPartida === 'all' ? 
+                    'EVOLUCIÓN DE PARTIDAS CLAVE (VALORES ABSOLUTOS)' : 
+                    `EVOLUCIÓN DE ${partidaInfo[state.selectedPartida].titulo}`;
+            } else if (state.activeView === 'bars') {
+                chartTitle.textContent = state.selectedPartida === 'all' ? 
+                    'ESTRUCTURA DEL ACTIVO (% SOBRE ACTIVO TOTAL)' : 
+                    `PESO RELATIVO DE ${partidaInfo[state.selectedPartida].titulo}`;
+            } else if (state.activeView === 'growth') {
+                chartTitle.textContent = state.selectedPartida === 'all' ? 
+                    'TASAS DE CRECIMIENTO INTERANUAL (%)' : 
+                    `CRECIMIENTO INTERANUAL DE ${partidaInfo[state.selectedPartida].titulo}`;
+            } else if (state.activeView === 'composition') {
+                chartTitle.textContent = `COMPOSICIÓN DEL ACTIVO (${state.selectedYear})`;
+            }
+        }
+        
+        // Actualizar título del panel de información
+        function updateInfoTitle() {
+            const infoTitle = document.querySelector('.info-title');
+            
+            if (state.activeView === 'composition') {
+                infoTitle.textContent = `ANÁLISIS COMPOSICIÓN ${state.selectedYear}`;
+            } else {
+                infoTitle.textContent = state.selectedPartida === 'all' ? 
+                    'ANÁLISIS MULTIPARTIDA' : 
+                    `ANÁLISIS DE ${partidaInfo[state.selectedPartida].titulo}`;
+            }
+        }
+        
+        // Mostrar/ocultar paneles de información
+        function toggleInfoPanels() {
+            const tendenciasPanel = document.getElementById('tendenciasPanel');
+            const partidaInfoPanel = document.getElementById('partidaInfoPanel');
+            
+            if (state.activeView === 'composition' || state.selectedPartida !== 'all') {
+                tendenciasPanel.style.display = 'none';
+            } else {
+                tendenciasPanel.style.display = 'flex';
+            }
+            
+            if (state.activeView !== 'composition' && state.selectedPartida !== 'all') {
+                partidaInfoPanel.style.display = 'block';
+            } else {
+                partidaInfoPanel.style.display = 'none';
+            }
+        }
+        
+        // Actualizar información de partida seleccionada
+        function updatePartidaInfo() {
+            const info = partidaInfo[state.selectedPartida];
+            document.getElementById('partidaTitulo').textContent = info.titulo;
+            document.getElementById('partidaTitulo').style.color = partidaColors[state.selectedPartida];
+            document.getElementById('partidaDefinicion').textContent = info.definicion;
+            document.getElementById('partidaEvolucion').textContent = info.evolucion;
+            document.getElementById('partidaInterpretacion').textContent = info.interpretacion2023;
+            document.getElementById('partidaImplicacion').textContent = info.implicacion;
+        }
+        
+        // Actualizar hallazgos mostrados
+        function updateHallazgos() {
+            const hallazgosList = document.getElementById('hallazgosList');
+            let hallazgos;
+            
+            if (state.activeView === 'composition') {
+                hallazgos = hallazgosComposicion[state.selectedYear];
+            } else {
+                hallazgos = hallazgosData[state.selectedPartida];
+            }
+            
+            hallazgosList.innerHTML = '';
+            hallazgos.forEach(hallazgo => {
+                const li = document.createElement('li');
+                li.textContent = hallazgo;
+                hallazgosList.appendChild(li);
+            });
+        }
+        
+        // Actualizar nota al pie
+        function updateFooterNote() {
+            const footerContent = document.getElementById('footerContent');
+            
+            if (state.activeView === 'lines' || state.activeView === 'growth') {
+                footerContent.textContent = state.selectedPartida === 'all' ? 
+                    footerTexts.lines.all : 
+                    footerTexts.lines[state.selectedPartida];
+            } else if (state.activeView === 'bars') {
+                footerContent.textContent = state.selectedPartida === 'all' ? 
+                    footerTexts.bars.all : 
+                    footerTexts.bars.default;
+            } else if (state.activeView === 'composition') {
+                footerContent.textContent = footerTexts.composition[state.selectedYear];
+            }
+        }
+        
+        // Crear gráfico según la vista actual
+        function createChart() {
+            console.log('Creando gráfico para vista:', state.activeView);
+            
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            // Diferentes configuraciones según tipo de gráfico
+            switch (state.activeView) {
+                case 'lines':
+                    createLineChart(ctx);
+                    break;
+                case 'bars':
+                    createBarChart(ctx);
+                    break;
+                case 'growth':
+                    createGrowthChart(ctx);
+                    break;
+                case 'composition':
+                    createPieChart(ctx);
+                    break;
+            }
+        }
+        
+        // Crear gráfico de líneas
+        function createLineChart(ctx) {
+            console.log('Creando gráfico de líneas...');
+            
+            const chartData = getFilteredData();
+            const labels = chartData.map(item => item.año);
+            
+            const datasets = [];
+            if (state.selectedPartida === 'all') {
+                // Añadir todas las partidas
+                datasets.push({
+                    label: 'Instalaciones',
+                    data: chartData.map(item => item.instalaciones),
+                    borderColor: partidaColors.instalaciones,
+                    backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                    tension: 0.3
+                });
+                
+                datasets.push({
+                    label: 'Existencias',
+                    data: chartData.map(item => item.existencias),
+                    borderColor: partidaColors.existencias,
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.3
+                });
+                
+                datasets.push({
+                    label: 'Deudores',
+                    data: chartData.map(item => item.deudores),
+                    borderColor: partidaColors.deudores,
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.3
+                });
+                
+                datasets.push({
+                    label: 'Efectivo',
+                    data: chartData.map(item => item.efectivo),
+                    borderColor: partidaColors.efectivo,
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.3
+                });
+                
+                datasets.push({
+                    label: 'Desarrollo',
+                    data: chartData.map(item => item.desarrollo),
+                    borderColor: partidaColors.desarrollo,
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    tension: 0.3
+                });
+            } else {
+                // Añadir solo la partida seleccionada
+                datasets.push({
+                    label: state.selectedPartida.charAt(0).toUpperCase() + state.selectedPartida.slice(1),
+                    data: chartData.map(item => item[state.selectedPartida]),
+                    borderColor: partidaColors[state.selectedPartida],
+                    backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                    tension: 0.3
+                });
+            }
+            
+            state.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatMillones(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatMillones(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Gráfico de líneas creado con éxito');
+        }
+        
+        // Crear gráfico de barras
+        function createBarChart(ctx) {
+            console.log('Creando gráfico de barras...');
+            
+            const chartData = getFilteredCompositionData();
+            const labels = chartData.map(item => item.año);
+            
+            const datasets = [];
+            if (state.selectedPartida === 'all') {
+                // Añadir todas las partidas para gráfico apilado
+                datasets.push({
+                    label: 'Instalaciones',
+                    data: chartData.map(item => item.instalaciones),
+                    backgroundColor: partidaColors.instalaciones,
+                    stack: 'Stack 0'
+                });
+                
+                datasets.push({
+                    label: 'Existencias',
+                    data: chartData.map(item => item.existencias),
+                    backgroundColor: partidaColors.existencias,
+                    stack: 'Stack 0'
+                });
+                
+                datasets.push({
+                    label: 'Deudores',
+                    data: chartData.map(item => item.deudores),
+                    backgroundColor: partidaColors.deudores,
+                    stack: 'Stack 0'
+                });
+                
+                datasets.push({
+                    label: 'Efectivo',
+                    data: chartData.map(item => item.efectivo),
+                    backgroundColor: partidaColors.efectivo,
+                    stack: 'Stack 0'
+                });
+                
+                datasets.push({
+                    label: 'Desarrollo',
+                    data: chartData.map(item => item.desarrollo),
+                    backgroundColor: partidaColors.desarrollo,
+                    stack: 'Stack 0'
+                });
+                
+                datasets.push({
+                    label: 'Otros',
+                    data: chartData.map(item => item.otros),
+                    backgroundColor: partidaColors.otros,
+                    stack: 'Stack 0'
+                });
+            } else {
+                // Añadir solo la partida seleccionada
+                datasets.push({
+                    label: state.selectedPartida.charAt(0).toUpperCase() + state.selectedPartida.slice(1),
+                    data: chartData.map(item => item[state.selectedPartida]),
+                    backgroundColor: partidaColors[state.selectedPartida]
+                });
+            }
+            
+            state.chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatPercent(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: state.selectedPartida === 'all' ? 100 : 50,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Gráfico de barras creado con éxito');
+        }
+        
+        // Crear gráfico de crecimiento
+        function createGrowthChart(ctx) {
+            console.log('Creando gráfico de crecimiento...');
+            
+            const chartData = getFilteredGrowthData();
+            const labels = chartData.map(item => item.año);
+            
+            const datasets = [];
+            if (state.selectedPartida === 'all') {
+                // Añadir todas las partidas
+                datasets.push({
+                    label: 'Instalaciones',
+                    data: chartData.map(item => item.instalaciones),
+                    backgroundColor: partidaColors.instalaciones
+                });
+                
+                datasets.push({
+                    label: 'Existencias',
+                    data: chartData.map(item => item.existencias),
+                    backgroundColor: partidaColors.existencias
+                });
+                
+                datasets.push({
+                    label: 'Deudores',
+                    data: chartData.map(item => item.deudores),
+                    backgroundColor: partidaColors.deudores
+                });
+                
+                datasets.push({
+                    label: 'Efectivo',
+                    data: chartData.map(item => item.efectivo),
+                    backgroundColor: partidaColors.efectivo
+                });
+                
+                datasets.push({
+                    label: 'Desarrollo',
+                    data: chartData.map(item => item.desarrollo),
+                    backgroundColor: partidaColors.desarrollo
+                });
+            } else {
+                // Añadir solo la partida seleccionada
+                datasets.push({
+                    label: state.selectedPartida.charAt(0).toUpperCase() + state.selectedPartida.slice(1),
+                    data: chartData.map(item => item[state.selectedPartida]),
+                    backgroundColor: partidaColors[state.selectedPartida]
+                });
+            }
+            
+            state.chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatGrowth(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: -60,
+                            max: state.selectedPartida === 'efectivo' ? 800 : 180,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Gráfico de crecimiento creado con éxito');
+        }
+        
+        // Crear gráfico de composición (pie)
+        function createPieChart(ctx) {
+            console.log('Creando gráfico de pastel para año:', state.selectedYear);
+            
+            const pieData = getPieData(state.selectedYear);
+            
+            state.chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: pieData.map(item => item.name),
+                    datasets: [{
+                        data: pieData.map(item => item.value),
+                        backgroundColor: pieData.map(item => item.color),
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${formatPercent(context.raw)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Gráfico de pastel creado con éxito');
+        }
+    </script>
+</body>
+</html>
